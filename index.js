@@ -1,5 +1,6 @@
 /**
 Original creators: https://github.com/App2Sales/react-native-switch-selector
+My fork: https://github.com/jayli3n/react-native-switch-selector
 Modified for my own use to allow for custom fonts, sizes and colors
 **/
 import React, { Component } from 'react';
