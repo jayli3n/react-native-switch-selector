@@ -1,25 +1,47 @@
 /**
 Original creators: https://github.com/App2Sales/react-native-switch-selector
 My fork: https://github.com/jayli3n/react-native-switch-selector
-Modified for my own use to allow for custom fonts, sizes and colors
+Modified for my own use to allow for custom styles, animations and features
 **/
 import React, { Component } from 'react';
 import {
   Animated,
   Easing,
   I18nManager,
-  Image,
   PanResponder,
-  Text,
   TouchableOpacity,
   View
 } from 'react-native';
+import AwsmText from './AwsmText';
 import {
   colorPicker,
-  fontSizePicker,
-  fontFamilyPicker
+  fontSizePicker
 } from './helper';
+import {
+  BORDER_RADIUS
+} from '../constants';
 
+/**
+PROPS:
+  style,
+  selectedTextColor,
+  borderColor,
+  borderWidth,
+  disabled,
+  size,
+  buttonHeight,
+  tight,
+  rounded,
+  type,
+  textStyle,
+  borderRadius: propBorderRadius,
+  backgroundColor: propBackgroundColor,
+
+
+  initial
+  animationDuration
+  options: label, value, activeColor, disableValueChangeOnPress
+**/
 
 const styles = {
   button: {
@@ -47,17 +69,20 @@ export default class AwsmSelector extends Component {
     this.state = {
       selected: this.props.initial ? this.props.initial : 0
     };
-    this.animatedValue = new Animated.Value(
-      this.props.initial
-        ? I18nManager.isRTL
-          ? -(this.props.initial / this.props.options.length)
-          : this.props.initial / this.props.options.length
-        : 0
-    );
+
+    let value = 0;
+    if (this.props.initial) {
+      if (I18nManager.isRTL) {
+        value = -(this.props.initial / this.props.options.length);
+      } else {
+        value = this.props.initial / this.props.options.length;
+      }
+    }
+    this.animatedValue = new Animated.Value(value);
   }
 
   componentWillMount() {
-    this._panResponder = PanResponder.create({
+    this.panResponder = PanResponder.create({
       onStartShouldSetPanResponder: this.shouldSetResponder,
       onMoveShouldSetPanResponder: this.shouldSetResponder,
       onPanResponderRelease: this.responderEnd,
@@ -73,11 +98,11 @@ export default class AwsmSelector extends Component {
 
   getBgColor(bgColor) {
     const { selected } = this.state;
-    const { options, buttonColor } = this.props;
-    return options[selected].activeColor || buttonColor || bgColor;
+    const { options } = this.props;
+    return options[selected].activeColor || bgColor;
   }
 
-  _getSwipeDirection(gestureState) {
+  getSwipeDirection(gestureState) {
     const { dx, dy, vx } = gestureState;
     // 0.1 velocity
     if (Math.abs(vx) > 0.1 && Math.abs(dy) < 80) {
@@ -88,7 +113,7 @@ export default class AwsmSelector extends Component {
 
   responderEnd = (evt, gestureState) => {
     if (this.props.disabled) return;
-    const swipeDirection = this._getSwipeDirection(gestureState);
+    const swipeDirection = this.getSwipeDirection(gestureState);
     if (
       swipeDirection === 'RIGHT' &&
       this.state.selected < this.props.options.length - 1
@@ -111,7 +136,7 @@ export default class AwsmSelector extends Component {
     Animated.timing(this.animatedValue, {
       toValue: value,
       duration: this.props.animationDuration,
-      easing: Easing.cubic,
+      easing: Easing.out(Easing.ease),
       useNativeDriver: true
     }).start();
   };
@@ -133,92 +158,61 @@ export default class AwsmSelector extends Component {
     this.setState({ selected: index });
   };
 
-  render() {
-    const {
-      style,
-      textStyle,
-      selectedTextStyle,
-      imageStyle,
-      textColor,
-      selectedColor,
-      textFontSize,
-      textLineHeight,
-      textFontFamily,
-      backgroundColor,
-      borderColor,
-      borderRadius,
-      borderWidth,
-      disabled,
-      size,
-      buttonHeight,
-      tight,
-      rounded,
-      type
-    } = this.props;
-
-    // Modifying color of button
-    const { fgColor, bgColor, fgColorInverse } = colorPicker(type);
-    // Get font size and line height based on size prop
-    const { fFamily } = fontFamilyPicker(14); // 14 is button font
-    const { fSize, lHeight } = fontSizePicker(size);
-    const fontSize = textFontSize || fSize;
-    const lineHeight = textLineHeight || lHeight;
-    // Working out the the padding and height of btn based on content size
-    const height = buttonHeight || fontSize * 3;
-
-    const options = this.props.options.map((element, index) => (
+  renderLabel = (element, index, fgColor, fgColorInverse) => {
+    const { disabled, size, textStyle, selectedTextColor } = this.props;
+    return (
       <TouchableOpacity
         key={index}
         disabled={disabled}
         style={styles.button}
         onPress={() => this.toggleItem(index)}
-        activeOpacity={0.5}
+        activeOpacity={0.6}
       >
-        {typeof element.customIcon === 'function'
-          ? element.customIcon(this.state.selected === index)
-          : element.customIcon}
-        {element.imageIcon && (
-          <Image
-            source={element.imageIcon}
-            style={[
-              {
-                height: 30,
-                width: 30,
-                tintColor:
-                  this.state.selected === index ? selectedColor || fgColor
-                  : textColor || fgColorInverse
-              },
-              imageStyle
-            ]}
-          />
-        )}
-        <Text
-          style={[
-            {
-              fontSize,
-              lineHeight,
-              fontFamily: textFontFamily || fFamily,
-              textAlign: 'center',
-              color: this.state.selected === index ? selectedColor || fgColor
-              : textColor || fgColorInverse,
-              backgroundColor: 'transparent'
-            },
-            this.state.selected === index ? selectedTextStyle : textStyle
-          ]}
+        <AwsmText
+          weight={14}
+          size={size}
+          align='center'
+          color={this.state.selected === index
+                ? selectedTextColor || fgColor
+                : fgColorInverse}
+          style={textStyle}
         >
           {element.label}
-        </Text>
+        </AwsmText>
       </TouchableOpacity>
-    ));
+    );
+  };
+
+  render() {
+    const {
+      style,
+      borderColor,
+      borderWidth,
+      size,
+      buttonHeight,
+      tight,
+      rounded,
+      type,
+      options,
+      borderRadius: propBorderRadius,
+      backgroundColor: propBackgroundColor
+    } = this.props;
+
+    const { fgColor, bgColor, fgColorInverse } = colorPicker(type);
+    const { fSize } = fontSizePicker(size);
+
+    const height = tight ? (buttonHeight || fSize) * 2.2 : (buttonHeight || fSize) * 3;
+    const borderRadius = rounded ? height / 2 : propBorderRadius;
+    const backgroundColor = propBackgroundColor || fgColor;
 
     return (
       <View style={[{ flexDirection: 'row' }, style]}>
-        <View {...this._panResponder.panHandlers} style={{ flex: 1 }}>
+        <View {...this.panResponder.panHandlers} style={{ flex: 1 }}>
           <View
             style={{
-              borderRadius: rounded ? height / 2 : borderRadius,
-              backgroundColor: backgroundColor || fgColor,
-              height: tight ? height * (2.2 / 3) : height
+              height,
+              borderRadius,
+              backgroundColor
             }}
             onLayout={event => {
               const { width } = event.nativeEvent.layout;
@@ -232,33 +226,32 @@ export default class AwsmSelector extends Component {
                 flex: 1,
                 flexDirection: 'row',
                 borderColor,
-                borderRadius: rounded ? height / 2 : borderRadius,
-                borderWidth
+                borderWidth,
+                borderRadius
               }}
             >
               {!!this.state.sliderWidth && (
                 <Animated.View
                   style={[
                     {
-                      height: tight ? height * (2.2 / 3) : height,
+                      height,
+                      borderRadius,
                       backgroundColor: this.getBgColor(bgColor),
-                      width:
-                        this.state.sliderWidth / this.props.options.length,
-                      transform: [
-                        {
+                      width: this.state.sliderWidth / this.props.options.length,
+                      transform: [{
                           translateX: this.animatedValue.interpolate({
                             inputRange: [0, 1],
                             outputRange: [0, this.state.sliderWidth]
                           })
-                        }
-                      ],
-                      borderRadius: rounded ? height / 2 : borderRadius,
+                        }]
                     },
                     styles.animated
                   ]}
                 />
               )}
-              {options}
+              {options.map((element, index) => (
+                this.renderLabel(element, index, fgColor, fgColorInverse)
+              ))}
             </View>
           </View>
         </View>
@@ -268,13 +261,9 @@ export default class AwsmSelector extends Component {
 }
 
 AwsmSelector.defaultProps = {
-  style: {},
-  textStyle: {},
-  selectedTextStyle: {},
-  imageStyle: {},
-  borderRadius: 13,
+  borderRadius: BORDER_RADIUS,
   returnObject: false,
-  animationDuration: 100,
+  animationDuration: 280,
   disabled: false,
   disableValueChangeOnPress: false
 };
